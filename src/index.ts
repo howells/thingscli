@@ -86,6 +86,17 @@ switch (command) {
     readResult("logbook", queries.logbook(Number(flag("limit")) || 50));
     break;
 
+  case "areas":
+    success(queries.areas(), "areas");
+    break;
+
+  case "project": {
+    const ref = args[1];
+    if (!ref) error("project requires a name or UUID argument.", "project");
+    readResult("project", queries.projectTasks(ref));
+    break;
+  }
+
   case "search": {
     const query = args[1];
     if (!query) error("search requires a query argument.", "search");
@@ -204,7 +215,7 @@ switch (command) {
     success(
       {
         usage: "thingscli <command> [args] [--fields uuid,title] [--limit 10] [--json '{...}'] [--dry-run]",
-        read: ["today", "inbox", "upcoming", "anytime", "someday", "projects", "logbook", "search", "tag", "tags", "stats"],
+        read: ["today", "inbox", "upcoming", "anytime", "someday", "projects", "project <name>", "areas", "logbook", "search", "tag", "tags", "stats"],
         write: ["add", "complete", "update"],
         meta: ["schema", "schema <command>", "help"],
         flags: {

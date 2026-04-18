@@ -39,14 +39,14 @@ describe("getSchema", () => {
     const schema = getSchema("add") as {
       params: Record<string, { required?: boolean }>;
     };
-    expect(schema.params.title.required).toBe(true);
+    expect(schema.params.title?.required).toBe(true);
   });
 
   it("includes when enum values", () => {
     const schema = getSchema("add") as {
       params: Record<string, { enum?: string[] }>;
     };
-    const whenEnum = schema.params.when.enum;
+    const whenEnum = schema.params.when?.enum;
     expect(whenEnum).toContain("today");
     expect(whenEnum).toContain("tomorrow");
     expect(whenEnum).toContain("evening");

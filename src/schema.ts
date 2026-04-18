@@ -82,6 +82,22 @@ const SCHEMAS: Record<string, object> = {
     params: { fields: { type: "string" }, limit: { type: "integer" } },
     returns: "Task[]",
   },
+  project: {
+    command: "project",
+    description: "List tasks within a specific project (by name or UUID)",
+    params: {
+      name: { type: "string", required: true, description: "Project name or UUID" },
+      fields: { type: "string" },
+      limit: { type: "integer" },
+    },
+    returns: "Task[]",
+  },
+  areas: {
+    command: "areas",
+    description: "List all areas with task and project counts",
+    params: {},
+    returns: "Area[]",
+  },
   logbook: {
     command: "logbook",
     description: "List completed tasks",

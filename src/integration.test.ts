@@ -107,7 +107,9 @@ describe("--fields", () => {
     const result = run("today --fields uuid,title");
     const tasks = result.data as Record<string, unknown>[];
     if (tasks.length === 0) return;
-    const keys = Object.keys(tasks[0]);
+    const first = tasks[0];
+    if (!first) return;
+    const keys = Object.keys(first);
     expect(keys).toContain("uuid");
     expect(keys).toContain("title");
     expect(keys).not.toContain("notes");
