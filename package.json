@@ -1,6 +1,6 @@
 {
-  "name": "@howells/things",
-  "version": "0.1.0",
+  "name": "@howells/thingscli",
+  "version": "0.1.1",
   "description": "CLI for Things 3 — read tasks from the database, write via URL scheme. Agent-first: structured JSON output, schema introspection, input validation, dry-run.",
   "type": "module",
   "license": "MIT",
