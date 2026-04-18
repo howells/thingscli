@@ -1,0 +1,33 @@
+{
+  "name": "thingscli",
+  "version": "0.1.0",
+  "description": "CLI for Things 3 — read tasks from the database, write via URL scheme",
+  "type": "module",
+  "license": "MIT",
+  "author": "Daniel Howells",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/howells/thingscli"
+  },
+  "bin": {
+    "thingscli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "howells-lint",
+    "format": "howells-format"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
+  },
+  "devDependencies": {
+    "@howells/lint": "^0.1.3",
+    "@howells/typescript-config": "^0.1.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}
