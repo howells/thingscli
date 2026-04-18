@@ -7,7 +7,7 @@ Designed for AI agents and automation. All read commands output JSON. macOS only
 ## Install
 
 ```bash
-npm install -g thingscli
+npm install -g @howells/things
 ```
 
 ## Usage
