@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 import * as queries from "./queries.ts";
+import { getSchema } from "./schema.ts";
+import { validateDate, validateTitle, validateUuid, validateWhen } from "./validate.ts";
+import { error, filterFields, success } from "./output.ts";
 import * as writer from "./writer.ts";
+import type { Task } from "./db.ts";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -16,161 +20,210 @@ function hasFlag(name: string): boolean {
   return args.includes(`--${name}`);
 }
 
-function json(data: unknown): void {
-  process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
-}
-
-function getAuthToken(): string {
+function getAuthToken(cmd: string): string {
   const token = flag("token") ?? process.env.THINGS_AUTH_TOKEN;
   if (!token) {
-    console.error("Auth token required. Use --token or set THINGS_AUTH_TOKEN.");
-    process.exit(1);
+    error(
+      "Auth token required. Use --token or set THINGS_AUTH_TOKEN env var.",
+      cmd,
+    );
   }
   return token;
 }
 
-const HELP = `thingscli — CLI for Things 3
+function readJsonInput(cmd: string): Record<string, unknown> {
+  const jsonStr = flag("json");
+  if (!jsonStr) return {};
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      error("--json must be a JSON object.", cmd);
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    error("--json contains invalid JSON.", cmd);
+  }
+}
 
-Read commands:
-  today                    Tasks on Today list
-  inbox                    Inbox tasks
-  upcoming                 Scheduled/upcoming tasks
-  anytime                  Anytime tasks (no date, started)
-  someday                  Someday tasks
-  projects                 All projects
-  logbook [--limit N]      Completed tasks (default: 50)
-  search <query>           Search by title or notes
-  tag <name>               Tasks with tag
-  tags                     List all tags
-  stats                    Task statistics
+function applyLimit(tasks: Task[], limitStr: string | undefined): Task[] {
+  if (!limitStr) return tasks;
+  const n = Number(limitStr);
+  if (Number.isNaN(n) || n < 1) return tasks;
+  return tasks.slice(0, n);
+}
 
-Write commands (require --token or THINGS_AUTH_TOKEN):
-  add <title> [options]    Add a task
-    --when <date>          today, tomorrow, evening, someday, or YYYY-MM-DD
-    --deadline <date>      Deadline date
-    --tags <t1,t2>         Comma-separated tags
-    --list <project>       Project name
-    --heading <heading>    Heading within project
-    --notes <text>         Notes
-    --checklist <a,b,c>    Checklist items (newline or comma separated)
+function readResult(cmd: string, tasks: Task[]): never {
+  const limited = applyLimit(tasks, flag("limit"));
+  const filtered = filterFields(
+    limited as unknown as Record<string, unknown>[],
+    flag("fields"),
+  );
+  success(filtered, cmd);
+}
 
-  complete <uuid>          Mark task complete
-
-  update <uuid> [options]  Update a task
-    --title <text>         New title
-    --when <date>          Reschedule
-    --deadline <date>      Set deadline
-    --add-tags <t1,t2>     Add tags
-    --append-notes <text>  Append to notes
-    --completed            Mark complete
-    --cancelled            Mark cancelled
-
-All read commands output JSON. Pipe to jq for formatting.`;
+// --- Commands ---
 
 switch (command) {
   case "today":
-    json(queries.today());
+    readResult("today", queries.today());
     break;
   case "inbox":
-    json(queries.inbox());
+    readResult("inbox", queries.inbox());
     break;
   case "upcoming":
-    json(queries.upcoming());
+    readResult("upcoming", queries.upcoming());
     break;
   case "anytime":
-    json(queries.anytime());
+    readResult("anytime", queries.anytime());
     break;
   case "someday":
-    json(queries.someday());
+    readResult("someday", queries.someday());
     break;
   case "projects":
-    json(queries.projects());
+    readResult("projects", queries.projects());
     break;
   case "logbook":
-    json(queries.logbook(Number(flag("limit")) || 50));
+    readResult("logbook", queries.logbook(Number(flag("limit")) || 50));
     break;
+
   case "search": {
     const query = args[1];
-    if (!query) {
-      console.error("Usage: thingscli search <query>");
-      process.exit(1);
-    }
-    json(queries.search(query));
+    if (!query) error("search requires a query argument.", "search");
+    readResult("search", queries.search(query));
     break;
   }
+
   case "tag": {
     const tagName = args[1];
-    if (!tagName) {
-      console.error("Usage: thingscli tag <name>");
-      process.exit(1);
-    }
-    json(queries.byTag(tagName));
+    if (!tagName) error("tag requires a tag name argument.", "tag");
+    readResult("tag", queries.byTag(tagName));
     break;
   }
+
   case "tags":
-    json(queries.allTags());
+    success(queries.allTags(), "tags");
     break;
+
   case "stats":
-    json(queries.stats());
+    success(queries.stats(), "stats");
     break;
+
   case "add": {
-    const title = args[1];
-    if (!title) {
-      console.error("Usage: thingscli add <title> [--when today] [--deadline 2026-04-25]");
-      process.exit(1);
+    const json = readJsonInput("add");
+    const title = (json.title as string) ?? args[1];
+    const when = (json.when as string) ?? flag("when");
+    const deadline = (json.deadline as string) ?? flag("deadline");
+    const tags = (json.tags as string) ?? flag("tags");
+    const list = (json.list as string) ?? flag("list");
+    const heading = (json.heading as string) ?? flag("heading");
+    const notes = (json.notes as string) ?? flag("notes");
+    const checklist = (json.checklist as string) ?? flag("checklist");
+
+    if (!title) error("title is required.", "add");
+    validateTitle(title, "add");
+    if (when) validateWhen(when, "add");
+    if (deadline) validateDate(deadline, "deadline", "add");
+
+    if (hasFlag("dry-run")) {
+      success(
+        { action: "add", title, when, deadline, tags, list, heading, notes, checklist },
+        "add",
+      );
     }
+
     writer.add({
       title,
-      when: flag("when"),
-      deadline: flag("deadline"),
-      tags: flag("tags"),
-      list: flag("list"),
-      heading: flag("heading"),
-      notes: flag("notes"),
-      checklist: flag("checklist"),
+      when,
+      deadline,
+      tags,
+      list,
+      heading,
+      notes,
+      checklist,
       authToken: flag("token") ?? process.env.THINGS_AUTH_TOKEN,
     });
-    console.log(`Added: ${title}`);
+    success({ action: "added", title }, "add");
     break;
   }
+
   case "complete": {
-    const id = args[1];
-    if (!id) {
-      console.error("Usage: thingscli complete <uuid>");
-      process.exit(1);
+    const json = readJsonInput("complete");
+    const id = (json.id as string) ?? args[1];
+    if (!id) error("id is required.", "complete");
+    validateUuid(id, "complete");
+
+    if (hasFlag("dry-run")) {
+      success({ action: "complete", id }, "complete");
     }
-    writer.complete(id, getAuthToken());
-    console.log(`Completed: ${id}`);
+
+    writer.complete(id, getAuthToken("complete"));
+    success({ action: "completed", id }, "complete");
     break;
   }
+
   case "update": {
-    const id = args[1];
-    if (!id) {
-      console.error("Usage: thingscli update <uuid> [--title ...] [--when ...]");
-      process.exit(1);
-    }
-    writer.update({
+    const json = readJsonInput("update");
+    const id = (json.id as string) ?? args[1];
+    if (!id) error("id is required.", "update");
+    validateUuid(id, "update");
+
+    const when = (json.when as string) ?? flag("when");
+    const deadline = (json.deadline as string) ?? flag("deadline");
+    if (when) validateWhen(when, "update");
+    if (deadline) validateDate(deadline, "deadline", "update");
+
+    const opts = {
       id,
-      title: flag("title"),
-      when: flag("when"),
-      deadline: flag("deadline"),
-      addTags: flag("add-tags"),
-      notes: flag("notes"),
-      appendNotes: flag("append-notes"),
-      completed: hasFlag("completed"),
-      cancelled: hasFlag("cancelled"),
-      authToken: getAuthToken(),
-    });
-    console.log(`Updated: ${id}`);
+      title: (json.title as string) ?? flag("title"),
+      when,
+      deadline,
+      addTags: (json["add-tags"] as string) ?? (json.addTags as string) ?? flag("add-tags"),
+      notes: (json.notes as string) ?? flag("notes"),
+      appendNotes: (json["append-notes"] as string) ?? (json.appendNotes as string) ?? flag("append-notes"),
+      completed: (json.completed as boolean) ?? hasFlag("completed"),
+      cancelled: (json.cancelled as boolean) ?? hasFlag("cancelled"),
+      authToken: getAuthToken("update"),
+    };
+
+    if (hasFlag("dry-run")) {
+      success({ action: "update", ...opts, authToken: "[redacted]" }, "update");
+    }
+
+    writer.update(opts);
+    success({ action: "updated", id }, "update");
     break;
   }
+
+  case "schema":
+    success(getSchema(args[1]), "schema");
+    break;
+
   case "help":
   case "--help":
   case "-h":
-  case undefined:
-    console.log(HELP);
+    success(
+      {
+        usage: "thingscli <command> [args] [--fields uuid,title] [--limit 10] [--json '{...}'] [--dry-run]",
+        read: ["today", "inbox", "upcoming", "anytime", "someday", "projects", "logbook", "search", "tag", "tags", "stats"],
+        write: ["add", "complete", "update"],
+        meta: ["schema", "schema <command>", "help"],
+        flags: {
+          "--fields": "Comma-separated field names to return (reads only)",
+          "--limit": "Max results (reads only)",
+          "--json": "Raw JSON payload for write commands",
+          "--dry-run": "Validate and return payload without executing (writes only)",
+          "--token": "Things auth token (or set THINGS_AUTH_TOKEN env var)",
+        },
+      },
+      "help",
+    );
     break;
+
+  case undefined:
+    error("No command provided. Run 'thingscli help' for usage.");
+    break;
+
   default:
-    console.error(`Unknown command: ${command}\nRun 'thingscli help' for usage.`);
-    process.exit(1);
+    error(`Unknown command: "${command}". Run 'thingscli help' for usage.`);
+    break;
 }
