@@ -7,6 +7,7 @@ function todayEncoded(): number {
   return (now.getFullYear() << 16) | ((now.getMonth() + 1) << 12) | (now.getDate() << 7);
 }
 
+/** Returns tasks scheduled for today (started, with startDate <= today). */
 export function today(): Task[] {
   return queryTasks(
     `${ACTIVE} AND t.start = 1 AND (t.startDate IS NULL OR t.startDate <= ?)`,
@@ -14,10 +15,12 @@ export function today(): Task[] {
   );
 }
 
+/** Returns tasks in the inbox (not started, no project). */
 export function inbox(): Task[] {
   return queryTasks(`${ACTIVE} AND t.start = 0 AND t.project IS NULL`);
 }
 
+/** Returns tasks with a future start date. */
 export function upcoming(): Task[] {
   return queryTasks(
     `${ACTIVE} AND t.start = 1 AND t.startDate > ?`,
@@ -25,18 +28,25 @@ export function upcoming(): Task[] {
   );
 }
 
+/** Returns started tasks with no specific start date. */
 export function anytime(): Task[] {
   return queryTasks(`${ACTIVE} AND t.start = 1 AND t.startDate IS NULL`);
 }
 
+/** Returns tasks deferred to "someday". */
 export function someday(): Task[] {
   return queryTasks(`${ACTIVE} AND t.start = 2`);
 }
 
+/** Returns all active projects. */
 export function projects(): Task[] {
   return queryTasks("t.trashed = 0 AND t.status = 0 AND t.type = 1");
 }
 
+/**
+ * Searches active tasks by title or notes.
+ * @param query - substring to match against title and notes
+ */
 export function search(query: string): Task[] {
   return queryTasks(
     "t.trashed = 0 AND t.status = 0 AND (t.title LIKE ? OR t.notes LIKE ?)",
@@ -44,6 +54,7 @@ export function search(query: string): Task[] {
   );
 }
 
+/** Returns all tag names, sorted alphabetically. */
 export function allTags(): string[] {
   const rows = getDb()
     .prepare("SELECT title FROM TMTag ORDER BY title")
@@ -51,10 +62,18 @@ export function allTags(): string[] {
   return rows.map((r) => r.title);
 }
 
+/**
+ * Returns active tasks with the given tag.
+ * @param tagName - exact tag title to filter by
+ */
 export function byTag(tagName: string): Task[] {
   return queryTasks(`${ACTIVE} AND tag.title = ?`, [tagName]);
 }
 
+/**
+ * Returns completed tasks, most recently completed first.
+ * @param limit - max number of tasks to return (default 50)
+ */
 export function logbook(limit = 50): Task[] {
   const sql = `
     SELECT
@@ -86,6 +105,7 @@ export interface Area {
   projectCount: number;
 }
 
+/** Returns all areas with their task and project counts. */
 export function areas(): Area[] {
   const db = getDb();
   const rows = db
@@ -105,6 +125,10 @@ export function areas(): Area[] {
   }));
 }
 
+/**
+ * Returns active tasks belonging to a project.
+ * @param projectRef - project UUID or title
+ */
 export function projectTasks(projectRef: string): Task[] {
   // Try UUID first, fall back to title match
   const db = getDb();
@@ -124,6 +148,7 @@ export function projectTasks(projectRef: string): Task[] {
   return queryTasks(`${ACTIVE} AND t.project = ?`, [projectUuid]);
 }
 
+/** Returns counts for each task category (inbox, today, upcoming, etc.). */
 export function stats(): Record<string, number> {
   const db = getDb();
   const count = (where: string) =>

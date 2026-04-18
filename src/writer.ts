@@ -42,6 +42,10 @@ function openUrl(url: string): void {
   execSync(`open "${url}"`, { stdio: "ignore" });
 }
 
+/**
+ * Creates a new task in Things via URL scheme.
+ * @param opts - task properties (title required, rest optional)
+ */
 export function add(opts: AddOptions): void {
   const params: Record<string, string> = { title: opts.title };
   if (opts.authToken) params["auth-token"] = opts.authToken;
@@ -55,6 +59,10 @@ export function add(opts: AddOptions): void {
   openUrl(buildUrl("add", params));
 }
 
+/**
+ * Updates an existing task in Things via URL scheme.
+ * @param opts - fields to update (id and authToken required)
+ */
 export function update(opts: UpdateOptions): void {
   const params: Record<string, string> = {
     "auth-token": opts.authToken,
@@ -71,10 +79,19 @@ export function update(opts: UpdateOptions): void {
   openUrl(buildUrl("update", params));
 }
 
+/**
+ * Marks a task as completed.
+ * @param id - task UUID
+ * @param authToken - Things auth token
+ */
 export function complete(id: string, authToken: string): void {
   update({ id, completed: true, authToken });
 }
 
+/**
+ * Creates a new project in Things via URL scheme.
+ * @param opts - project properties (title required, rest optional)
+ */
 export function addProject(opts: {
   title: string;
   when?: string;
