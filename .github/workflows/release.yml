@@ -38,7 +38,13 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # macOS, not ubuntu, because thingscli declares `"os": ["darwin"]` - it
+    # reads the Things 3 database out of a Mac group container. On Linux the
+    # consumer install fails with EBADPLATFORM before it can check anything,
+    # and npm's --os flag steers optional dependency selection rather than the
+    # root install target, so it does not help. This workflow only ever runs by
+    # hand, so the 10x runner rate is a few minutes per publish.
+    runs-on: macos-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
