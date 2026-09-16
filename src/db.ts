@@ -1,19 +1,30 @@
-import Database from "better-sqlite3";
+import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { readdirSync } from "node:fs";
+import Database from "better-sqlite3";
 
 const CONTAINER =
   "Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac";
 
+const NOT_FOUND = "Things 3 database not found. Is Things installed?";
+
 function findDbPath(): string {
   const containerPath = join(homedir(), CONTAINER);
-  const entries = readdirSync(containerPath).filter((e) =>
-    e.startsWith("ThingsData-"),
-  );
-  const dataDir = entries[0];
+
+  // readdirSync throws ENOENT when the container is absent, which is the
+  // ordinary case on a machine without Things - every other platform included.
+  // Letting it escape turned a known condition into a node stack trace, past
+  // the structured error every other failure in this CLI reports.
+  let entries: string[];
+  try {
+    entries = readdirSync(containerPath);
+  } catch {
+    throw new Error(NOT_FOUND);
+  }
+
+  const dataDir = entries.filter((e) => e.startsWith("ThingsData-"))[0];
   if (!dataDir) {
-    throw new Error("Things 3 database not found. Is Things installed?");
+    throw new Error(NOT_FOUND);
   }
   return join(
     containerPath,
@@ -152,6 +163,8 @@ const GROUP_BY = "GROUP BY t.uuid";
 
 export function queryTasks(where: string, params: unknown[] = []): Task[] {
   const sql = `${BASE_QUERY} WHERE ${where} ${GROUP_BY} ORDER BY t.todayIndex, t."index"`;
-  const rows = getDb().prepare(sql).all(...params) as RawTask[];
+  const rows = getDb()
+    .prepare(sql)
+    .all(...params) as RawTask[];
   return rows.map(mapTask);
 }

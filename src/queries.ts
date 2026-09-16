@@ -4,7 +4,11 @@ const ACTIVE = "t.trashed = 0 AND t.status = 0 AND t.type = 0";
 
 function todayEncoded(): number {
   const now = new Date();
-  return (now.getFullYear() << 16) | ((now.getMonth() + 1) << 12) | (now.getDate() << 7);
+  return (
+    (now.getFullYear() << 16) |
+    ((now.getMonth() + 1) << 12) |
+    (now.getDate() << 7)
+  );
 }
 
 /** Returns tasks scheduled for today (started, with startDate <= today). */
@@ -22,10 +26,9 @@ export function inbox(): Task[] {
 
 /** Returns tasks with a future start date. */
 export function upcoming(): Task[] {
-  return queryTasks(
-    `${ACTIVE} AND t.start = 1 AND t.startDate > ?`,
-    [todayEncoded()],
-  );
+  return queryTasks(`${ACTIVE} AND t.start = 1 AND t.startDate > ?`, [
+    todayEncoded(),
+  ]);
 }
 
 /** Returns started tasks with no specific start date. */
@@ -93,7 +96,9 @@ export function logbook(limit = 50): Task[] {
     ORDER BY t.stopDate DESC
     LIMIT ?
   `;
-  const rows = getDb().prepare(sql).all(limit) as Parameters<typeof mapTask>[0][];
+  const rows = getDb().prepare(sql).all(limit) as Parameters<
+    typeof mapTask
+  >[0][];
   return rows.map(mapTask);
 }
 
@@ -115,7 +120,13 @@ export function areas(): Area[] {
         (SELECT COUNT(*) FROM TMTask t WHERE t.area = a.uuid AND t.trashed = 0 AND t.status = 0 AND t.type = 1) AS projectCount
       FROM TMArea a ORDER BY a."index"`,
     )
-    .all() as { uuid: string; title: string; visible: number; taskCount: number; projectCount: number }[];
+    .all() as {
+    uuid: string;
+    title: string;
+    visible: number;
+    taskCount: number;
+    projectCount: number;
+  }[];
   return rows.map((r) => ({
     uuid: r.uuid,
     title: r.title,
@@ -133,14 +144,18 @@ export function projectTasks(projectRef: string): Task[] {
   // Try UUID first, fall back to title match
   const db = getDb();
   const byUuid = db
-    .prepare("SELECT uuid FROM TMTask WHERE uuid = ? AND type = 1 AND trashed = 0")
+    .prepare(
+      "SELECT uuid FROM TMTask WHERE uuid = ? AND type = 1 AND trashed = 0",
+    )
     .get(projectRef) as { uuid: string } | undefined;
 
   const projectUuid = byUuid
     ? byUuid.uuid
     : (
         db
-          .prepare("SELECT uuid FROM TMTask WHERE title = ? AND type = 1 AND trashed = 0")
+          .prepare(
+            "SELECT uuid FROM TMTask WHERE title = ? AND type = 1 AND trashed = 0",
+          )
           .get(projectRef) as { uuid: string } | undefined
       )?.uuid;
 
@@ -152,13 +167,23 @@ export function projectTasks(projectRef: string): Task[] {
 export function stats(): Record<string, number> {
   const db = getDb();
   const count = (where: string) =>
-    (db.prepare(`SELECT COUNT(*) AS c FROM TMTask WHERE ${where}`).get() as { c: number }).c;
+    (
+      db.prepare(`SELECT COUNT(*) AS c FROM TMTask WHERE ${where}`).get() as {
+        c: number;
+      }
+    ).c;
 
   return {
-    inbox: count("trashed=0 AND status=0 AND type=0 AND start=0 AND project IS NULL"),
+    inbox: count(
+      "trashed=0 AND status=0 AND type=0 AND start=0 AND project IS NULL",
+    ),
     today: today().length,
-    upcoming: count(`trashed=0 AND status=0 AND type=0 AND start=1 AND startDate IS NOT NULL AND startDate > ${todayEncoded()}`),
-    anytime: count("trashed=0 AND status=0 AND type=0 AND start=1 AND startDate IS NULL"),
+    upcoming: count(
+      `trashed=0 AND status=0 AND type=0 AND start=1 AND startDate IS NOT NULL AND startDate > ${todayEncoded()}`,
+    ),
+    anytime: count(
+      "trashed=0 AND status=0 AND type=0 AND start=1 AND startDate IS NULL",
+    ),
     someday: count("trashed=0 AND status=0 AND type=0 AND start=2"),
     projects: count("trashed=0 AND status=0 AND type=1"),
     completed: count("trashed=0 AND status=3 AND type=0"),

@@ -1,4 +1,11 @@
-const WHEN_ENUM = ["today", "tomorrow", "evening", "anytime", "someday", "YYYY-MM-DD"];
+const WHEN_ENUM = [
+  "today",
+  "tomorrow",
+  "evening",
+  "anytime",
+  "someday",
+  "YYYY-MM-DD",
+];
 
 const SCHEMAS: Record<string, object> = {
   add: {
@@ -12,7 +19,10 @@ const SCHEMAS: Record<string, object> = {
       list: { type: "string", description: "Project name to add task to" },
       heading: { type: "string", description: "Heading within project" },
       notes: { type: "string", maxLength: 10000 },
-      checklist: { type: "string", description: "Comma or newline separated checklist items" },
+      checklist: {
+        type: "string",
+        description: "Comma or newline separated checklist items",
+      },
     },
     accepts_json: true,
   },
@@ -24,7 +34,10 @@ const SCHEMAS: Record<string, object> = {
       title: { type: "string", maxLength: 4000 },
       when: { type: "string", enum: WHEN_ENUM },
       deadline: { type: "string", format: "date" },
-      "add-tags": { type: "string", description: "Comma-separated tags to add" },
+      "add-tags": {
+        type: "string",
+        description: "Comma-separated tags to add",
+      },
       notes: { type: "string", maxLength: 10000 },
       "append-notes": { type: "string" },
       completed: { type: "boolean" },
@@ -44,7 +57,10 @@ const SCHEMAS: Record<string, object> = {
     command: "today",
     description: "List tasks on the Today list",
     params: {
-      fields: { type: "string", description: "Comma-separated field names to return" },
+      fields: {
+        type: "string",
+        description: "Comma-separated field names to return",
+      },
       limit: { type: "integer", description: "Max results" },
     },
     returns: "Task[]",
@@ -86,7 +102,11 @@ const SCHEMAS: Record<string, object> = {
     command: "project",
     description: "List tasks within a specific project (by name or UUID)",
     params: {
-      name: { type: "string", required: true, description: "Project name or UUID" },
+      name: {
+        type: "string",
+        required: true,
+        description: "Project name or UUID",
+      },
       fields: { type: "string" },
       limit: { type: "integer" },
     },
@@ -150,9 +170,22 @@ export function getSchema(command?: string): object {
     version: "0.1.0",
     description: "CLI for Things 3 — read from database, write via URL scheme",
     task_fields: [
-      "uuid", "title", "type", "status", "start", "notes",
-      "startDate", "deadline", "createdAt", "project", "projectTitle",
-      "area", "areaTitle", "tags", "checklistCount", "openChecklistCount",
+      "uuid",
+      "title",
+      "type",
+      "status",
+      "start",
+      "notes",
+      "startDate",
+      "deadline",
+      "createdAt",
+      "project",
+      "projectTitle",
+      "area",
+      "areaTitle",
+      "tags",
+      "checklistCount",
+      "openChecklistCount",
     ],
     commands: SCHEMAS,
   };

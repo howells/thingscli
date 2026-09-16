@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
 const CLI = "npx tsx src/index.ts";
 
-function run(args: string): { ok: boolean; data: unknown; error?: string; command?: string } {
+function run(args: string): {
+  ok: boolean;
+  data: unknown;
+  error?: string;
+  command?: string;
+} {
   try {
     const stdout = execSync(`${CLI} ${args}`, {
       cwd: import.meta.dirname + "/..",
@@ -19,7 +27,23 @@ function run(args: string): { ok: boolean; data: unknown; error?: string; comman
   }
 }
 
-describe("read commands", () => {
+// These drive the CLI against the real Things 3 database in the user's home
+// container. It exists on a Mac with Things installed and nowhere else, so on a
+// CI runner these assert nothing and must not run. Everything below this group
+// - validation, schema, dry-run, help - runs everywhere.
+const hasThingsDatabase = (() => {
+  const container = join(
+    homedir(),
+    "Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac",
+  );
+  try {
+    return readdirSync(container).some((e) => e.startsWith("ThingsData-"));
+  } catch {
+    return false;
+  }
+})();
+
+describe.skipIf(!hasThingsDatabase)("read commands", () => {
   it("today returns an array of tasks", () => {
     const result = run("today");
     expect(result.ok).toBe(true);
@@ -102,7 +126,7 @@ describe("read commands", () => {
   });
 });
 
-describe("--fields", () => {
+describe.skipIf(!hasThingsDatabase)("--fields", () => {
   it("filters to requested fields only", () => {
     const result = run("today --fields uuid,title");
     const tasks = result.data as Record<string, unknown>[];
@@ -117,7 +141,7 @@ describe("--fields", () => {
   });
 });
 
-describe("--limit", () => {
+describe.skipIf(!hasThingsDatabase)("--limit", () => {
   it("limits results", () => {
     const result = run("today --limit 2");
     const tasks = result.data as unknown[];
@@ -125,7 +149,7 @@ describe("--limit", () => {
   });
 });
 
-describe("search", () => {
+describe.skipIf(!hasThingsDatabase)("search", () => {
   it("searches by title", () => {
     const result = run('search "to-do"');
     expect(result.ok).toBe(true);
@@ -179,7 +203,9 @@ describe("error handling", () => {
 
 describe("dry-run", () => {
   it("validates add without executing", () => {
-    const result = run("add --json '{\"title\":\"Dry run test\",\"when\":\"today\"}' --dry-run");
+    const result = run(
+      'add --json \'{"title":"Dry run test","when":"today"}\' --dry-run',
+    );
     expect(result.ok).toBe(true);
     const data = result.data as Record<string, unknown>;
     expect(data.action).toBe("add");
@@ -188,7 +214,7 @@ describe("dry-run", () => {
   });
 
   it("validates and rejects bad input in dry-run", () => {
-    const result = run("add --json '{\"title\":\"\",\"when\":\"today\"}' --dry-run");
+    const result = run('add --json \'{"title":"","when":"today"}\' --dry-run');
     expect(result.ok).toBe(false);
     expect(result.error).toContain("required");
   });

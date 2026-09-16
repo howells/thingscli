@@ -30,7 +30,10 @@ function encode(value: string): string {
 }
 
 /** @internal exported for testing */
-export function buildUrl(command: string, params: Record<string, string>): string {
+export function buildUrl(
+  command: string,
+  params: Record<string, string>,
+): string {
   const qs = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== "")
     .map(([k, v]) => `${k}=${encode(v)}`)

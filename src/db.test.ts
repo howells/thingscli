@@ -93,10 +93,21 @@ describe("mapTask", () => {
 
   it("maps status values correctly", () => {
     const base = {
-      uuid: "a", title: "t", type: 0, start: 0, notes: null,
-      startDate: null, deadline: null, creationDate: null,
-      project: null, projectTitle: null, area: null, areaTitle: null,
-      tags: null, checklistItemsCount: 0, openChecklistItemsCount: 0,
+      uuid: "a",
+      title: "t",
+      type: 0,
+      start: 0,
+      notes: null,
+      startDate: null,
+      deadline: null,
+      creationDate: null,
+      project: null,
+      projectTitle: null,
+      area: null,
+      areaTitle: null,
+      tags: null,
+      checklistItemsCount: 0,
+      openChecklistItemsCount: 0,
     };
 
     expect(mapTask({ ...base, status: 0 }).status).toBe("open");
@@ -106,10 +117,21 @@ describe("mapTask", () => {
 
   it("maps type values correctly", () => {
     const base = {
-      uuid: "a", title: "t", status: 0, start: 0, notes: null,
-      startDate: null, deadline: null, creationDate: null,
-      project: null, projectTitle: null, area: null, areaTitle: null,
-      tags: null, checklistItemsCount: 0, openChecklistItemsCount: 0,
+      uuid: "a",
+      title: "t",
+      status: 0,
+      start: 0,
+      notes: null,
+      startDate: null,
+      deadline: null,
+      creationDate: null,
+      project: null,
+      projectTitle: null,
+      area: null,
+      areaTitle: null,
+      tags: null,
+      checklistItemsCount: 0,
+      openChecklistItemsCount: 0,
     };
 
     expect(mapTask({ ...base, type: 0 }).type).toBe("task");
@@ -119,10 +141,21 @@ describe("mapTask", () => {
 
   it("splits tags correctly", () => {
     const base = {
-      uuid: "a", title: "t", type: 0, status: 0, start: 0, notes: null,
-      startDate: null, deadline: null, creationDate: null,
-      project: null, projectTitle: null, area: null, areaTitle: null,
-      checklistItemsCount: 0, openChecklistItemsCount: 0,
+      uuid: "a",
+      title: "t",
+      type: 0,
+      status: 0,
+      start: 0,
+      notes: null,
+      startDate: null,
+      deadline: null,
+      creationDate: null,
+      project: null,
+      projectTitle: null,
+      area: null,
+      areaTitle: null,
+      checklistItemsCount: 0,
+      openChecklistItemsCount: 0,
     };
 
     expect(mapTask({ ...base, tags: null }).tags).toEqual([]);
